@@ -1,4 +1,4 @@
-﻿# 🧪 TP – Déploiement CI/CD d'une Web API .NET 8 sur Azure
+﻿# 🧪 TP – Déploiement CI/CD d'une Web API .NET 8 sur Azure.
 
 ## 🎯 Objectif
 
