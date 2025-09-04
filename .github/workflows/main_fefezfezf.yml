@@ -9,30 +9,72 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
 
-    - name: Log in to registry
-      uses: docker/login-action@v2
-      with:
-        registry: https://index.docker.io/v1/
-        username: ${{ secrets.AzureAppService_ContainerUsername_007dc16c00194a579ee0e182f3912414 }}
-        password: ${{ secrets.AzureAppService_ContainerPassword_03b591a7c15d426aa4439cb5a79e30b8 }}
+      - name: Restore dependencies
+        run: dotnet restore
 
-    - name: Build and push container image to registry
-      uses: docker/build-push-action@v3
-      with:
-        push: true
-        tags: forsanta/webapi-starter-dotnet8:${{ github.sha }}
-        file: ./Dockerfile
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Publish app
+        run: dotnet publish -c Release -o publish
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-publish
+          path: publish/
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run tests
+        run: dotnet test --no-build --verbosity normal
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to registry
+        uses: docker/login-action@v2
+        with:
+          registry: https://index.docker.io/v1/
+          username: ${{ secrets.AzureAppService_ContainerUsername_007dc16c00194a579ee0e182f3912414 }}
+          password: ${{ secrets.AzureAppService_ContainerPassword_03b591a7c15d426aa4439cb5a79e30b8 }}
+
+      - name: Build and push container image to registry
+        uses: docker/build-push-action@v3
+        with:
+          push: true
+          tags: forsanta/webapi-starter-dotnet8:${{ github.sha }}
+          file: ./Dockerfile
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build
+    needs: [docker-build, test]   # 🔹 attend build & test avant de lancer
     environment:
       name: production
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
@@ -41,14 +83,20 @@ jobs:
       webapp-url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}   
 
     steps:
-    - name: Deploy to Azure Web App
-      id: deploy-to-webapp
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: fefezfezf
-        slot-name: production
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_9b585dbfa0374924ab161fec5b2dea00 }}
-        images: forsanta/webapi-starter-dotnet8:${{ github.sha }}
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dotnet-publish
+          path: ./publish
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: fefezfezf
+          slot-name: production
+          publish-profile: ${{ secrets.AzureAppService_PublishProfile_9b585dbfa0374924ab161fec5b2dea00 }}
+          images: forsanta/webapi-starter-dotnet8:${{ github.sha }}
         
   check-url:
     runs-on: ubuntu-latest
