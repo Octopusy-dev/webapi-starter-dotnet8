@@ -56,10 +56,12 @@ jobs:
     steps:
       - name: Vérifier que l’URL retourne "Hello World"
         run: |
-          response=$(curl -s ${{ steps.deploy-to-webapp.outputs.webapp-url }})
+          url="${{ needs.deploy.outputs.webapp-url }}"
+          echo "Test de l'URL : $url"
+          response=$(curl -s "$url")
           echo "Réponse : $response"
           if [ "$response" != "Hello World" ]; then
             echo "❌ L'URL ne retourne pas 'Hello World'"
             exit 1
           fi
-          echo "✅ L'URL retourne bien 'Hello World'"        
+          echo "✅ L'URL retourne bien 'Hello World'"     
