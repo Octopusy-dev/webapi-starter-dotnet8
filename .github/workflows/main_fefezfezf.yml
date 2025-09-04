@@ -67,4 +67,4 @@ jobs:
             echo "❌ L'URL ne retourne pas 'Hello World'"
             exit 1
           fi
-          echo "✅ L'URL retourne bien 'Hello World'"     
+          echo "✅ L'URL retourne bien 'Hello World!'"     
