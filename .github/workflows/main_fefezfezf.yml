@@ -1,17 +1,14 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Docker App  (good fefezfezf )
+name: Docker App (good fefezfezf)
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+
+env:
+  EXPECTED_RESPONSE: "Hello World!"   # 🔹 Définition de la variable globale
 
 jobs:
   build:
-    runs-on: 'ubuntu-latest'
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
@@ -37,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: 'production'
+      name: production
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
    
     outputs:
@@ -48,23 +45,23 @@ jobs:
       id: deploy-to-webapp
       uses: azure/webapps-deploy@v2
       with:
-        app-name: 'fefezfezf'
-        slot-name: 'production'
+        app-name: fefezfezf
+        slot-name: production
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_9b585dbfa0374924ab161fec5b2dea00 }}
-        images: 'forsanta/webapi-starter-dotnet8:${{ github.sha }}'
+        images: forsanta/webapi-starter-dotnet8:${{ github.sha }}
         
   check-url:
     runs-on: ubuntu-latest
     needs: deploy
     steps:
-      - name: Vérifier que l’URL retourne "Hello World"
+      - name: Vérifier que l’URL retourne la valeur attendue
         run: |
           url="${{ needs.deploy.outputs.webapp-url }}"
           echo "Test de l'URL : $url"
           response=$(curl -s "$url")
           echo "Réponse : $response"
-          if [ "$response" != "Hello World!" ]; then
-            echo "❌ L'URL ne retourne pas 'Hello World!'"
+          if [ "$response" != "$EXPECTED_RESPONSE" ]; then
+            echo "❌ L'URL ne retourne pas '$EXPECTED_RESPONSE'"
             exit 1
           fi
-          echo "✅ L'URL retourne bien 'Hello World!'"     
+          echo "✅ L'URL retourne bien '$EXPECTED_RESPONSE'"
