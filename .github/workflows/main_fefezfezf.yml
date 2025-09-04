@@ -30,7 +30,7 @@ jobs:
       uses: docker/build-push-action@v3
       with:
         push: true
-        tags: index.docker.io/${{ secrets.AzureAppService_ContainerUsername_34f86c0a37874edd890f8be04a9c0ff4 }}/forsanta/hello-word:${{ github.sha }}
+        tags: index.docker.io/${{ secrets.AzureAppService_ContainerUsername_34f86c0a37874edd890f8be04a9c0ff4 }}/forsanta/hello-word:latest
         file: ./Dockerfile
 
   deploy:
@@ -48,4 +48,4 @@ jobs:
         app-name: 'fefezfezf'
         slot-name: 'production'
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_6f6882c46e97454db3537c50d3318635 }}
-        images: 'index.docker.io/${{ secrets.AzureAppService_ContainerUsername_34f86c0a37874edd890f8be04a9c0ff4 }}/forsanta/hello-word:${{ github.sha }}'
+        images: 'index.docker.io/${{ secrets.AzureAppService_ContainerUsername_34f86c0a37874edd890f8be04a9c0ff4 }}/forsanta/hello-word:latest'
