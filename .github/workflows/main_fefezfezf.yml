@@ -1,10 +1,11 @@
-name: Docker App (good fefezfezf)
+name: Docker & .NET App CI/CD
 
 on:
   workflow_dispatch:
 
 env:
-  EXPECTED_RESPONSE: "Hello World!"   # 🔹 Définition de la variable globale
+  EXPECTED_RESPONSE: "Hello World!"
+  AZURE_WEBAPP_PACKAGE_PATH: ./publish
 
 jobs:
   build:
@@ -22,15 +23,6 @@ jobs:
 
       - name: Build
         run: dotnet build --configuration Release --no-restore
-
-      - name: Publish app
-        run: dotnet publish -c Release -o publish
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dotnet-publish
-          path: publish/
 
   test:
     runs-on: ubuntu-latest
@@ -72,18 +64,43 @@ jobs:
           tags: forsanta/webapi-starter-dotnet8:${{ github.sha }}
           file: ./Dockerfile
 
-  deploy:
+  build-binary:
+    needs: [build, test]
     runs-on: ubuntu-latest
-    needs: [docker-build, test]   # 🔹 attend build & test avant de lancer
-    environment:
-      name: production
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-   
-    outputs:
-      webapp-url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}   
-
     steps:
-      - name: Download build artifact
+      - uses: actions/checkout@v2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Publish app
+        run: dotnet publish -c Release -o publish
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-publish
+          path: publish/
+
+  deploy-binary:
+    permissions:
+      contents: none
+    runs-on: ubuntu-latest
+    needs: build-binary
+    environment:
+      name: 'Development'
+    outputs:
+      webapp-url: ${{ steps.set-url.outputs.webapp-url }}
+    steps:
+      - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: dotnet-publish
@@ -93,18 +110,58 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v2
         with:
+          app-name: app-as-code
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+
+      - name: Set webapp-url output
+        id: set-url
+        run: echo "webapp-url=https://app-as-code.azurewebsites.net" >> $GITHUB_OUTPUT
+
+  deploy-docker:
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    environment:
+      name: production
+    outputs:
+      webapp-url: ${{ steps.set-url.outputs.webapp-url }}
+    steps:
+      - name: Deploy to Azure Web App with Docker
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v2
+        with:
           app-name: fefezfezf
           slot-name: production
           publish-profile: ${{ secrets.AzureAppService_PublishProfile_9b585dbfa0374924ab161fec5b2dea00 }}
           images: forsanta/webapi-starter-dotnet8:${{ github.sha }}
-        
-  check-url:
+
+      - name: Set webapp-url output
+        id: set-url
+        run: echo "webapp-url=https://fefezfezf.azurewebsites.net" >> $GITHUB_OUTPUT
+
+  check-url-docker:
     runs-on: ubuntu-latest
-    needs: deploy
+    needs: deploy-docker
     steps:
       - name: Vérifier que l’URL retourne la valeur attendue
         run: |
-          url="${{ needs.deploy.outputs.webapp-url }}"
+          url="${{ needs.deploy-docker.outputs.webapp-url }}"
+          echo "Test de l'URL : $url"
+          response=$(curl -s "$url")
+          echo "Réponse : $response"
+          if [ "$response" != "$EXPECTED_RESPONSE" ]; then
+            echo "❌ L'URL ne retourne pas '$EXPECTED_RESPONSE'"
+            exit 1
+          fi
+          echo "✅ L'URL retourne bien '$EXPECTED_RESPONSE'"
+
+  check-url-binary:
+    runs-on: ubuntu-latest
+    needs: deploy-binary
+    steps:
+      - name: Vérifier que l’URL retourne la valeur attendue
+        run: |
+          url="${{ needs.deploy-binary.outputs.webapp-url }}"
           echo "Test de l'URL : $url"
           response=$(curl -s "$url")
           echo "Réponse : $response"
