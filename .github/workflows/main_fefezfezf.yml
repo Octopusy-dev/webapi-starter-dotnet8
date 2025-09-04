@@ -63,8 +63,8 @@ jobs:
           echo "Test de l'URL : $url"
           response=$(curl -s "$url")
           echo "Réponse : $response"
-          if [ "$response" != "Hello World" ]; then
-            echo "❌ L'URL ne retourne pas 'Hello World'"
+          if [ "$response" != "Hello World!" ]; then
+            echo "❌ L'URL ne retourne pas 'Hello World!'"
             exit 1
           fi
           echo "✅ L'URL retourne bien 'Hello World!'"     
