@@ -1,7 +1,7 @@
-name: Build and deploy a container to an Azure Web App
+name: Docker deploys
 
 env:
-  AZURE_WEBAPP_NAME: MyHelloWordDockerApp  # set this to the name of your Azure Web App
+  AZURE_WEBAPP_NAME: fefezfezf  # set this to the name of your Azure Web App
 
 on:
   workflow_dispatch:
