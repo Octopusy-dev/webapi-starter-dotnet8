@@ -30,7 +30,7 @@ jobs:
       uses: docker/build-push-action@v3
       with:
         push: true
-        tags: index.docker.io/${{ secrets.AzureAppService_ContainerUsername_007dc16c00194a579ee0e182f3912414 }}/forsanta/webapi-starter-dotnet8:${{ github.sha }}
+        tags: forsanta/webapi-starter-dotnet8:${{ github.sha }}
         file: ./Dockerfile
 
   deploy:
@@ -48,4 +48,4 @@ jobs:
         app-name: 'fefezfezf'
         slot-name: 'production'
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_9b585dbfa0374924ab161fec5b2dea00 }}
-        images: 'index.docker.io/${{ secrets.AzureAppService_ContainerUsername_007dc16c00194a579ee0e182f3912414 }}/forsanta/webapi-starter-dotnet8:${{ github.sha }}'
+        images: 'forsanta/webapi-starter-dotnet8:${{ github.sha }}'
